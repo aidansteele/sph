@@ -1,0 +1,3 @@
+[submodule "vendor/sphlib"]
+	path = vendor/sphlib
+	url = https://github.com/aidansteele/sphlib.git
