@@ -3,7 +3,7 @@ import private/sphmacros
 
 {.compile: "vendor/sphlib/c/sha0.c".}
 defineSphHash(SHA0, 20, "sha0", "", "", ""):
-  type SHA0 = object
+  type SHA0* = object
     buf: array[64, cuchar]
     val: array[5, uint32]
     count: uint64
@@ -20,7 +20,7 @@ defineSphHash(SHA224, 28, "sha224", "", "", ""):
     count: uint64
     
 defineSphHash(SHA256, 32, "sha256", "", "sph_sha224", ""):
-  type SHA256 = distinct SHA224
+  type SHA256* = distinct SHA224
   
 {.compile: "vendor/sphlib/c/sha2big.c".}
 defineSphHash(SHA384, 48, "sha384", "", "", ""):
