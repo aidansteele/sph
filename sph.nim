@@ -1,5 +1,5 @@
 import strutils
-import sphmacros
+import private/sphmacros
 
 {.compile: "vendor/sphlib/c/sha0.c".}
 defineSphHash(SHA0, 20, "sha0", "", "", ""):
@@ -180,6 +180,30 @@ proc sphHash*[T](data: string): string =
   var ctx = sphInit[T]()
   sphUpdate(ctx, data)
   result = sphFinalize(ctx)
+  
+proc sphHmac*(key: string, data: string, hashFn: proc(inp: string): string, blockSize: int = 64): string =
+  var k = key
+  
+  if len(k) > block_size:
+    k = hashFn(k)
+  while len(k) < block_size:
+    k = k & "\x00"
+  
+  const opad = 0x5c
+  const ipad = 0x36
+  var o_key_pad = newString(block_size) #seq[uint8] = @[]
+  var i_key_pad = newString(block_size)
+  
+  for i in 0..block_size-1:
+    o_key_pad[i] = char(k[i].ord xor opad)
+    i_key_pad[i] = char(k[i].ord xor ipad)
+    
+  let inner = hashFn(i_key_pad & data)
+  result = hashFn(o_key_pad & inner)
+
+proc sphHmac*[T](key: string, data: string): string =
+  result = sphHmac(key, data) do (inp: string) -> string:
+    sphHash[T](inp)
 
 proc hexify*(inp: string): string =
   var outp = newStringOfCap(len(inp) * 2)
@@ -194,11 +218,13 @@ when defined(sphtesting):
   var ctx = sphInit[SHA256]()
   sphUpdate(ctx, "hello world")
   let outp = sphFinalize(ctx)
-  echo hexify(outp)
   check(hexify(outp) == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")
+  
+  let body = "hello world"
+  let key = "key"
 
   template hh(typ: typed): string =
-    hexify(sphHash[typ]("hello world"))
+    hexify(sphHash[typ](body))
   
   check:
     hh(SHA0)         == "9fce82c34887c1953b40b3a2883e18850c4fa8a6"
@@ -235,4 +261,8 @@ when defined(sphtesting):
     hh(HAVAL256_3)   == "45492c6c8adab277759f4381420799431a037daf6d829b8b5c21104c10f61a92"
     hh(HAVAL256_4)   == "0359a526d77e271707c44d9b270e68a394f8486a459f0137ad5e1d02e44c5889"
     hh(HAVAL256_5)   == "f5f6ffcfe39a65ac2c3989430340420341762a6624ebd69b9d08ec1dc4b9f167"
+
+    hexify(sphHmac[SHA256](key, body)) == "0ba06f1f9a6300461e43454535dc3c4223e47b1d357073d7536eae90ec095be1"
+    hexify(sphHmac[MD5](key, body)) == "ae92cf51adf91130130aefc2b39a7595"
+
     
