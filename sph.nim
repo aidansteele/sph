@@ -1,4 +1,4 @@
-import strutils
+import strutils,unicode
 import private/sphmacros
 
 {.compile: "vendor/sphlib/c/sha0.c".}
